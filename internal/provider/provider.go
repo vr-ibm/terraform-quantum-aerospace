@@ -44,7 +44,9 @@ func (p *QuantumAerospaceProvider) Configure(_ context.Context, _ provider.Confi
 }
 
 func (p *QuantumAerospaceProvider) Resources(_ context.Context) []func() resource.Resource {
-	return nil
+	return []func() resource.Resource{
+		NewQuantumJobResource,
+	}
 }
 
 func (p *QuantumAerospaceProvider) DataSources(_ context.Context) []func() datasource.DataSource {
