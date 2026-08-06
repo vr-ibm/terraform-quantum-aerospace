@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"encoding/json"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -26,6 +27,7 @@ type QuantumJobResourceModel struct {
 	Shots   types.Int64  `tfsdk:"shots"`
 	Status  types.String `tfsdk:"status"`
 	Results types.String `tfsdk:"results"`
+	Timeout types.String `tfsdk:"timeout"`
 }
 
 func NewQuantumJobResource() resource.Resource {
@@ -79,6 +81,10 @@ func (r *QuantumJobResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				Computed:    true,
 				Description: "JSON-encoded measurement results from the backend.",
 			},
+			"timeout": schema.StringAttribute{
+				Optional:    true,
+				Description: "Maximum time to wait for job completion (e.g. 5m, 10m). Defaults to 10m.",
+			},
 		},
 	}
 }
@@ -90,7 +96,7 @@ func (r *QuantumJobResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
-	// Build a simple circuit payload for IonQ
+	// Build circuit payload
 	// TODO: parse OpenQASM into IonQ native format
 	circuitJSON := json.RawMessage(`{"qubits": 4, "circuit": []}`)
 	jobResp, err := r.client.CreateJob(ctx, client.JobInput{
@@ -104,8 +110,35 @@ func (r *QuantumJobResource) Create(ctx context.Context, req resource.CreateRequ
 	}
 
 	data.ID = types.StringValue(jobResp.ID)
-	data.Status = types.StringValue(jobResp.Status)
-	data.Results = types.StringValue("{}")
+
+	// Parse timeout
+	pollConfig := client.DefaultPollConfig()
+	if !data.Timeout.IsNull() && data.Timeout.ValueString() != "" {
+		duration, err := time.ParseDuration(data.Timeout.ValueString())
+		if err != nil {
+			resp.Diagnostics.AddError("Invalid timeout", err.Error())
+			return
+		}
+		pollConfig.Timeout = duration
+	}
+
+	// Poll until complete
+	finalResp, err := r.client.PollJobUntilComplete(ctx, jobResp.ID, pollConfig)
+	if err != nil {
+		// Job was submitted but didn't complete in time — save state anyway
+		data.Status = types.StringValue(jobResp.Status)
+		data.Results = types.StringValue("{}")
+		resp.Diagnostics.AddWarning("Job submitted but not yet complete", err.Error())
+		resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+		return
+	}
+
+	data.Status = types.StringValue(finalResp.Status)
+	if finalResp.Results != nil {
+		data.Results = types.StringValue(string(finalResp.Results))
+	} else {
+		data.Results = types.StringValue("{}")
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
