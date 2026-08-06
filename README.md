@@ -2,86 +2,54 @@
 
 [![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](LICENSE)
 
-Terraform provider for quantum cloud backends (IonQ on GCP, AWS Braket) applied to aerospace
-optimization problems. Explores IaC design patterns for non-CRUD resource lifecycles — job-based
-execution, probabilistic state, and ephemeral circuits — as quantum services expand across major
-cloud platforms.
+A Terraform provider for quantum cloud infrastructure applied to sustainable commercial aviation.
 
-## Motivation
+## Research Focus
 
-Quantum cloud services (IonQ via GCP Marketplace, AWS Braket, Azure Quantum) are fundamentally
-different from traditional CRUD APIs:
+Commercial aviation accounts for ~2.5% of global CO2 emissions. Route optimization, fleet
+scheduling, and fuel allocation are combinatorial problems where quantum computing may offer
+advantages at scale. This project models quantum optimization jobs as Terraform-managed
+infrastructure, applying QAOA to flight route selection that minimizes fuel burn and emissions.
 
-- **Jobs are immutable** — you submit a circuit, you don't update it in place
-- **State is probabilistic** — results are distributions, not deterministic values
-- **Backends are ephemeral** — calibration data and availability change without user action
-- **Execution is async** — jobs queue, run, and complete on timescales Terraform doesn't expect
+## Design Patterns
 
-These characteristics challenge standard Terraform provider design patterns. This project explores
-how IaC tooling should model non-traditional cloud resources, using aerospace optimization workloads
-as a reference domain.
+This provider implements four IaC design patterns for non-CRUD cloud services:
+
+| Pattern | Resource | Description |
+|---------|----------|-------------|
+| Immutable job lifecycle | `quantum_job` | `RequiresReplace` on circuit/backend, no Update |
+| Async polling | `quantum_job` | Exponential backoff, configurable timeout |
+| Partial import | `quantum_job` | ID resolves status/results, circuit is write-only |
+| Config-only resource | `quantum_circuit` | No backing API, state-only, content-addressed |
+
+## Application: Sustainable Route Optimization
+
+The example encodes a flight route selection problem as QAOA:
+
+- 4 qubits represent candidate route segments (direct, wind-optimized, SAF corridor, congestion-avoidance)
+- ZZ interactions encode emission cost conflicts between segments
+- Measurement outcomes approximate the lowest-emission route combination
+
+## Quick Start
+
+```bash
+export IONQ_API_KEY=your_key
+cd examples/sustainable-aviation
+terraform init
+terraform apply
+```
 
 ## Provider Resources
 
-| Type | Kind | Description |
-|------|------|-------------|
-| `quantum_job` | Resource | Submit a quantum circuit to a cloud backend |
-| `quantum_backend` | Data Source | Query backend metadata (qubits, status, shot limits) |
+- `quantum_job` — Submit and poll a quantum circuit execution
+- `quantum_circuit` — Define a reusable, named circuit (config-only)
+- `data.quantum_backend` — Read backend metadata (qubits, status)
 
-## Usage
+## Testing
 
-```hcl
-provider "quantum" {
-  backend = "ionq"
-}
-
-data "quantum_backend" "aria" {
-  name = "ionq.aria"
-}
-
-resource "quantum_job" "trajectory" {
-  backend = data.quantum_backend.aria.name
-  shots   = 1000
-  circuit = file("circuits/qaoa_trajectory.qasm")
-}
+```bash
+IONQ_API_KEY=your_key TF_ACC=1 go test ./internal/provider/... -v -timeout 15m
 ```
-
-See [`examples/aerospace-trajectory/`](examples/aerospace-trajectory/) for a complete working
-configuration.
-
-## Building
-
-```sh
-go build ./...
-```
-
-## Research
-
-This provider serves as the implementation artifact for a research paper exploring IaC design
-patterns for quantum cloud services. Key research questions:
-
-- How should Terraform model resources with non-deterministic state?
-- What identity patterns apply to job-based (submit-and-poll) APIs vs. CRUD APIs?
-- How do list/import patterns work for ephemeral quantum resources?
-- What Plugin Framework gaps emerge when modeling non-traditional lifecycles?
-
-## Aerospace workloads
-
-The reference workloads focus on problems where quantum approaches show promise:
-
-- **Satellite trajectory optimization** — QAOA for waypoint selection under orbital constraints
-- **Constellation scheduling** — Quantum annealing for multi-satellite communication scheduling
-- **Structural analysis** — VQE for materials simulation in aerospace composites
-
-## Roadmap
-
-- [ ] IonQ API client (GCP Marketplace auth)
-- [ ] AWS Braket API client
-- [ ] Async job polling with configurable timeout
-- [ ] `quantum_circuit` resource (reusable circuit definitions)
-- [ ] `quantum_job` list resource for `terraform query`
-- [ ] Acceptance tests against simulator backends
-- [ ] Benchmark: classical vs. quantum solver for trajectory problems
 
 ## License
 
