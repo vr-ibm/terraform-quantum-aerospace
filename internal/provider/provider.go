@@ -50,5 +50,7 @@ func (p *QuantumAerospaceProvider) Resources(_ context.Context) []func() resourc
 }
 
 func (p *QuantumAerospaceProvider) DataSources(_ context.Context) []func() datasource.DataSource {
-	return nil
+	return []func() datasource.DataSource{
+		NewQuantumBackendDataSource,
+	}
 }
