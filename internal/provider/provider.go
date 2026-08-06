@@ -81,6 +81,7 @@ func (p *QuantumAerospaceProvider) Configure(ctx context.Context, req provider.C
 func (p *QuantumAerospaceProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewQuantumJobResource,
+		NewQuantumCircuitResource,
 	}
 }
 

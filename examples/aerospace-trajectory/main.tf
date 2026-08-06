@@ -12,27 +12,26 @@ provider "quantum" {
 }
 
 # Look up available backend metadata before submitting
-data "quantum_backend" "aria" {
-  name = "ionq.aria-1"
+data "quantum_backend" "simulator" {
+  name = "simulator"
 }
 
 output "backend_qubits" {
-  value = data.quantum_backend.aria.qubits
+  value = data.quantum_backend.simulator.qubits
 }
 
 output "backend_status" {
-  value = data.quantum_backend.aria.status
+  value = data.quantum_backend.simulator.status
 }
 
-# Aerospace use case: QAOA circuit for satellite trajectory optimization
-# Circuit encoded as OpenQASM 3.0
-resource "quantum_job" "trajectory_optimization" {
-  backend = data.quantum_backend.aria.name
-  shots   = 1000
-  circuit = <<-QASM
+# Define circuit as a reusable, named resource
+resource "quantum_circuit" "trajectory_qaoa" {
+  name        = "qaoa-trajectory-4q"
+  description = "4-qubit QAOA ansatz for satellite trajectory waypoint optimization"
+  qubits      = 4
+  body        = <<-QASM
     OPENQASM 3.0;
     include "stdgates.inc";
-    // 4-qubit QAOA ansatz for trajectory waypoint optimization
     qubit[4] q;
     bit[4] c;
     // Initial superposition
@@ -58,6 +57,18 @@ resource "quantum_job" "trajectory_optimization" {
     // Measure
     c = measure q;
   QASM
+}
+
+# Submit the circuit as a job — references the circuit resource
+resource "quantum_job" "trajectory_optimization" {
+  backend = data.quantum_backend.simulator.name
+  shots   = 1000
+  timeout = "5m"
+  circuit = quantum_circuit.trajectory_qaoa.body
+}
+
+output "circuit_hash" {
+  value = quantum_circuit.trajectory_qaoa.hash
 }
 
 output "job_id" {
