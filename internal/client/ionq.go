@@ -133,23 +133,28 @@ type BackendResponse struct {
 type BackendsListResponse []BackendResponse
 
 func (c *IonQClient) GetBackend(ctx context.Context, name string) (*BackendResponse, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", ionqBaseURL+"/backends/"+name, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", ionqBaseURL+"/backends", nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %w", err)
 	}
 	req.Header.Set("Authorization", "apiKey "+c.APIKey)
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("getting backend: %w", err)
+		return nil, fmt.Errorf("getting backends: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("IonQ API error (status %d): %s", resp.StatusCode, string(respBody))
 	}
-	var backend BackendResponse
-	if err := json.NewDecoder(resp.Body).Decode(&backend); err != nil {
-		return nil, fmt.Errorf("decoding backend response: %w", err)
+	var backends []BackendResponse
+	if err := json.NewDecoder(resp.Body).Decode(&backends); err != nil {
+		return nil, fmt.Errorf("decoding backends response: %w", err)
 	}
-	return &backend, nil
+	for _, b := range backends {
+		if b.Name == name {
+			return &b, nil
+		}
+	}
+	return nil, fmt.Errorf("backend %q not found", name)
 }

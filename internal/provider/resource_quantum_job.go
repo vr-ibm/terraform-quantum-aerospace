@@ -15,6 +15,7 @@ import (
 
 var _ resource.Resource = &QuantumJobResource{}
 var _ resource.ResourceWithConfigure = &QuantumJobResource{}
+var _ resource.ResourceWithImportState = &QuantumJobResource{}
 
 type QuantumJobResource struct {
 	client *client.IonQClient
@@ -178,4 +179,29 @@ func (r *QuantumJobResource) Delete(ctx context.Context, req resource.DeleteRequ
 		// Job may already be completed — not a fatal error
 		resp.Diagnostics.AddWarning("Could not cancel job", err.Error())
 	}
+}
+
+func (r *QuantumJobResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	var data QuantumJobResourceModel
+	data.ID = types.StringValue(req.ID)
+
+	jobResp, err := r.client.GetJob(ctx, req.ID)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to import quantum job", err.Error())
+		return
+	}
+
+	data.Backend = types.StringValue(jobResp.Target)
+	data.Status = types.StringValue(jobResp.Status)
+	if jobResp.Results != nil {
+		data.Results = types.StringValue(string(jobResp.Results))
+	} else {
+		data.Results = types.StringValue("{}")
+	}
+	// circuit and timeout are not returned by the API; ImportStateVerifyIgnore covers them
+	data.Circuit = types.StringValue("")
+	data.Timeout = types.StringNull()
+	data.Shots = types.Int64Value(0)
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }

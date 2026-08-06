@@ -18,11 +18,11 @@ type QuantumBackendDataSource struct {
 }
 
 type QuantumBackendDataSourceModel struct {
-	ID       types.String `tfsdk:"id"`
-	Name     types.String `tfsdk:"name"`
-	Provider types.String `tfsdk:"provider"`
-	Qubits   types.Int64  `tfsdk:"qubits"`
-	Status   types.String `tfsdk:"status"`
+	ID            types.String `tfsdk:"id"`
+	Name          types.String `tfsdk:"name"`
+	CloudProvider types.String `tfsdk:"cloud_provider"`
+	Qubits        types.Int64  `tfsdk:"qubits"`
+	Status        types.String `tfsdk:"status"`
 }
 
 func NewQuantumBackendDataSource() datasource.DataSource {
@@ -51,9 +51,9 @@ func (d *QuantumBackendDataSource) Schema(_ context.Context, _ datasource.Schema
 				Required:    true,
 				Description: "Backend name (e.g. simulator, ionq.aria-1, ionq.forte-1).",
 			},
-			"provider": schema.StringAttribute{
+			"cloud_provider": schema.StringAttribute{
 				Computed:    true,
-				Description: "Cloud provider hosting the backend.",
+				Description: "Cloud provider hosting the backend (ionq, braket).",
 			},
 			"qubits": schema.Int64Attribute{
 				Computed:    true,
@@ -86,6 +86,6 @@ func (d *QuantumBackendDataSource) Read(ctx context.Context, req datasource.Read
 	data.ID = data.Name
 	data.Status = types.StringValue(backend.Status)
 	data.Qubits = types.Int64Value(backend.Qubits)
-	data.Provider = types.StringValue("ionq")
+	data.CloudProvider = types.StringValue("ionq")
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
