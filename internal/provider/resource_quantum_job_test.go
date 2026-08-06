@@ -11,7 +11,6 @@ func TestAccQuantumJobResource(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
-			// Create and poll until complete
 			{
 				Config: testAccQuantumJobResourceConfig(),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -22,12 +21,25 @@ func TestAccQuantumJobResource(t *testing.T) {
 					resource.TestCheckResourceAttrSet("quantum_job.bell_state", "results"),
 				),
 			},
-			// Read back from state
+		},
+	})
+}
+
+func TestAccQuantumJobResource_Import(t *testing.T) {
+	testAccPreCheck(t)
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			// Create the job first
 			{
-				ResourceName:      "quantum_job.bell_state",
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateVerifyIgnore: []string{"circuit", "timeout", "shots"},
+				Config: testAccQuantumJobResourceConfig(),
+			},
+			// Import by ID — circuit and shots won't round-trip
+			{
+				ResourceName:            "quantum_job.bell_state",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"circuit", "shots", "timeout"},
 			},
 		},
 	})
