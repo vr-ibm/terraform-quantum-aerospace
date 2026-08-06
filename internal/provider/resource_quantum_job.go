@@ -48,7 +48,7 @@ func (r *QuantumJobResource) Metadata(_ context.Context, req resource.MetadataRe
 
 func (r *QuantumJobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Manages a quantum job submitted to a cloud quantum backend.",
+		Description: "Submits a quantum circuit to a cloud backend for execution. Designed for aviation optimization workloads including route selection, fuel burn minimization, and emissions reduction using QAOA.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,

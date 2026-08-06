@@ -35,7 +35,7 @@ func (r *QuantumCircuitResource) Metadata(_ context.Context, req resource.Metada
 
 func (r *QuantumCircuitResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Defines a reusable quantum circuit. This is a config-only resource — it has no backing API and exists only in Terraform state. It enables circuit composition and separation of concerns between circuit authoring and job submission.",
+		Description: "Defines a reusable quantum circuit for sustainable aviation optimization. This is a config-only resource with no backing API — it enables separation of concerns between circuit authoring (route/emission models) and job submission.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,

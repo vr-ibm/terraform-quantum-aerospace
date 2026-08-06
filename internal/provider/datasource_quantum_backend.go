@@ -42,7 +42,7 @@ func (d *QuantumBackendDataSource) Metadata(_ context.Context, req datasource.Me
 
 func (d *QuantumBackendDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Fetches metadata about a quantum cloud backend from IonQ.",
+		Description: "Reads metadata about a quantum cloud backend. Use to verify hardware availability and qubit capacity before submitting aviation optimization workloads.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,

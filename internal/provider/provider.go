@@ -38,7 +38,7 @@ func (p *QuantumAerospaceProvider) Metadata(_ context.Context, _ provider.Metada
 
 func (p *QuantumAerospaceProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Terraform provider for quantum cloud backends applied to aerospace optimization problems.",
+		Description: "Provider for managing quantum cloud infrastructure for sustainable aviation optimization. Targets IonQ and other quantum backends for flight route, fuel allocation, and emissions minimization workloads.",
 		Attributes: map[string]schema.Attribute{
 			"backend": schema.StringAttribute{
 				Description: "Quantum backend to use (ionq, braket).",
