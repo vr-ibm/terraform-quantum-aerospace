@@ -13,7 +13,7 @@ provider "quantum" {
 
 # Look up available backend metadata before submitting
 data "quantum_backend" "aria" {
-  name = "ionq.aria"
+  name = "ionq.aria-1"
 }
 
 output "backend_qubits" {

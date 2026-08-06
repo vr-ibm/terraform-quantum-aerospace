@@ -120,3 +120,36 @@ func (c *IonQClient) CancelJob(ctx context.Context, jobID string) error {
 	}
 	return nil
 }
+
+type BackendResponse struct {
+	Name        string `json:"backend"`
+	Status      string `json:"status"`
+	Qubits      int64  `json:"qubits"`
+	AverageT1   int64  `json:"average_t1"`
+	AverageT2   int64  `json:"average_t2"`
+	Description string `json:"characterization_url"`
+}
+
+type BackendsListResponse []BackendResponse
+
+func (c *IonQClient) GetBackend(ctx context.Context, name string) (*BackendResponse, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", ionqBaseURL+"/backends/"+name, nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %w", err)
+	}
+	req.Header.Set("Authorization", "apiKey "+c.APIKey)
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("getting backend: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("IonQ API error (status %d): %s", resp.StatusCode, string(respBody))
+	}
+	var backend BackendResponse
+	if err := json.NewDecoder(resp.Body).Decode(&backend); err != nil {
+		return nil, fmt.Errorf("decoding backend response: %w", err)
+	}
+	return &backend, nil
+}

@@ -2,28 +2,38 @@ package provider
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/vr-ibm/terraform-quantum-aerospace/internal/client"
 )
 
 var _ datasource.DataSource = &QuantumBackendDataSource{}
+var _ datasource.DataSourceWithConfigure = &QuantumBackendDataSource{}
 
-type QuantumBackendDataSource struct{}
+type QuantumBackendDataSource struct {
+	client *client.IonQClient
+}
 
 type QuantumBackendDataSourceModel struct {
-	ID          types.String `tfsdk:"id"`
-	Name        types.String `tfsdk:"name"`
-	Provider    types.String `tfsdk:"provider"`
-	Qubits      types.Int64  `tfsdk:"qubits"`
-	Status      types.String `tfsdk:"status"`
-	MaxShots    types.Int64  `tfsdk:"max_shots"`
-	Description types.String `tfsdk:"description"`
+	ID       types.String `tfsdk:"id"`
+	Name     types.String `tfsdk:"name"`
+	Provider types.String `tfsdk:"provider"`
+	Qubits   types.Int64  `tfsdk:"qubits"`
+	Status   types.String `tfsdk:"status"`
 }
 
 func NewQuantumBackendDataSource() datasource.DataSource {
 	return &QuantumBackendDataSource{}
+}
+
+func (d *QuantumBackendDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
+	}
+	d.client = req.ProviderData.(*client.IonQClient)
 }
 
 func (d *QuantumBackendDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -32,18 +42,18 @@ func (d *QuantumBackendDataSource) Metadata(_ context.Context, req datasource.Me
 
 func (d *QuantumBackendDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Fetches metadata about a quantum cloud backend (IonQ, Braket) including qubit count, status, and shot limits.",
+		Description: "Fetches metadata about a quantum cloud backend from IonQ.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,
 			},
 			"name": schema.StringAttribute{
 				Required:    true,
-				Description: "Backend name (e.g. ionq.harmony, ionq.aria, braket.sv1).",
+				Description: "Backend name (e.g. simulator, ionq.aria-1, ionq.forte-1).",
 			},
 			"provider": schema.StringAttribute{
 				Computed:    true,
-				Description: "Cloud provider hosting the backend (ionq, braket).",
+				Description: "Cloud provider hosting the backend.",
 			},
 			"qubits": schema.Int64Attribute{
 				Computed:    true,
@@ -52,14 +62,6 @@ func (d *QuantumBackendDataSource) Schema(_ context.Context, _ datasource.Schema
 			"status": schema.StringAttribute{
 				Computed:    true,
 				Description: "Current availability status of the backend.",
-			},
-			"max_shots": schema.Int64Attribute{
-				Computed:    true,
-				Description: "Maximum number of shots supported per job.",
-			},
-			"description": schema.StringAttribute{
-				Computed:    true,
-				Description: "Human-readable description of the backend.",
 			},
 		},
 	}
@@ -71,13 +73,19 @@ func (d *QuantumBackendDataSource) Read(ctx context.Context, req datasource.Read
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	// TODO: fetch backend metadata from API
-	// Stubbed with realistic IonQ Aria values for now
+
+	backend, err := d.client.GetBackend(ctx, data.Name.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			fmt.Sprintf("Failed to read backend %s", data.Name.ValueString()),
+			err.Error(),
+		)
+		return
+	}
+
 	data.ID = data.Name
+	data.Status = types.StringValue(backend.Status)
+	data.Qubits = types.Int64Value(backend.Qubits)
 	data.Provider = types.StringValue("ionq")
-	data.Qubits = types.Int64Value(25)
-	data.Status = types.StringValue("available")
-	data.MaxShots = types.Int64Value(10000)
-	data.Description = types.StringValue("IonQ Aria — 25-qubit trapped-ion quantum computer.")
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
